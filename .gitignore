@@ -1,0 +1,4 @@
+report/
+log/
+influx-grafana/influx-data/
+scenario/data/split

@@ -1,0 +1,52 @@
+version: "3"
+services:
+  jmeter-master:
+    build: &common-build
+      context: .
+      args:
+        - JMETER_VERSION=5.4.1
+    container_name: jmeter-master
+    user: 0:0
+    environment: &common-env
+      JMX_FOLDER: ${JMX_FOLDER}
+    links: &common-links
+      - influxdb
+    volumes: &common-volumes
+      - ./scenario:/scenario
+      - ./log:/opt/jmeter/apache-jmeter/logs
+      - ./report:/opt/jmeter/apache-jmeter/results
+      - ./entrypoint.sh:/opt/entrypoint.sh
+    depends_on: 
+      - jmeter-slave
+  jmeter-slave:
+    build: *common-build
+    links: *common-links
+    user: 0:0
+    environment:
+      <<: *common-env
+      SLAVE: "1"
+    volumes: *common-volumes
+
+  influxdb:
+    image: influxdb:1.7.4
+    container_name: influxdb
+    ports:
+      - "8086"
+    env_file:
+      - ./influx-grafana/env.influxdb
+    volumes:
+    - ./influx-grafana/influx-data:/var/lib/influxdb
+
+  grafana:
+    image: grafana/grafana:10.0.3
+    container_name: grafana
+    ports:
+      - "30000:3000"
+    env_file:
+      - ./influx-grafana/env.grafana
+    links:
+      - influxdb
+    volumes:
+      - ./influx-grafana/grafana/provisioning/:/etc/grafana/provisioning/
+      - ./influx-grafana/grafana/dashboards/:/var/lib/grafana/dashboards/
+
